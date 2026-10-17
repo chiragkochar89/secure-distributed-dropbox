@@ -1,0 +1,268 @@
+services:
+  node-1:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: raft-node-1
+    environment:
+      - NODE_ID=node-1
+      - HTTP_PORT=8001
+      - GRPC_PORT=50051
+      - RAFT_PEERS=node-2:50052,node-3:50053
+      - DATABASE_URL=postgresql+psycopg2://dropbox_user:dropbox_password@postgres-1:5432/dropbox_db_1
+      - MINIO_ENDPOINT=minio-1:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - MINIO_BUCKET=node-1-bucket
+      - MINIO_PEER_ENDPOINTS=node-2=minio-2:9000,node-3=minio-3:9000
+      - JWT_SECRET_KEY=nbQCpsrwNhr90Moenf5-7YH5blzXuWQkoL1Gg-mNXpC_m2CJ0cYBbzI1Go51pOE5
+      - ELECTION_TIMEOUT_MIN_MS=1000
+      - ELECTION_TIMEOUT_MAX_MS=2000
+      - HEARTBEAT_INTERVAL_MS=150
+      - SNAPSHOT_THRESHOLD=10
+      - PHASE=phase-7
+    ports:
+      - "8001:8001"
+      - "50051:50051"
+    volumes:
+      - raft_data_1:/app/data/raft
+    depends_on:
+      postgres-1:
+        condition: service_healthy
+      minio-1:
+        condition: service_healthy
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  node-2:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: raft-node-2
+    environment:
+      - NODE_ID=node-2
+      - HTTP_PORT=8002
+      - GRPC_PORT=50052
+      - RAFT_PEERS=node-1:50051,node-3:50053
+      - DATABASE_URL=postgresql+psycopg2://dropbox_user:dropbox_password@postgres-2:5432/dropbox_db_2
+      - MINIO_ENDPOINT=minio-2:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - MINIO_BUCKET=node-2-bucket
+      - MINIO_PEER_ENDPOINTS=node-1=minio-1:9000,node-3=minio-3:9000
+      - JWT_SECRET_KEY=nbQCpsrwNhr90Moenf5-7YH5blzXuWQkoL1Gg-mNXpC_m2CJ0cYBbzI1Go51pOE5
+      - ELECTION_TIMEOUT_MIN_MS=1000
+      - ELECTION_TIMEOUT_MAX_MS=2000
+      - HEARTBEAT_INTERVAL_MS=150
+      - SNAPSHOT_THRESHOLD=10
+      - PHASE=phase-7
+    ports:
+      - "8002:8002"
+      - "50052:50052"
+    volumes:
+      - raft_data_2:/app/data/raft
+    depends_on:
+      postgres-2:
+        condition: service_healthy
+      minio-2:
+        condition: service_healthy
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  node-3:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: raft-node-3
+    environment:
+      - NODE_ID=node-3
+      - HTTP_PORT=8003
+      - GRPC_PORT=50053
+      - RAFT_PEERS=node-1:50051,node-2:50052
+      - DATABASE_URL=postgresql+psycopg2://dropbox_user:dropbox_password@postgres-3:5432/dropbox_db_3
+      - MINIO_ENDPOINT=minio-3:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - MINIO_BUCKET=node-3-bucket
+      - MINIO_PEER_ENDPOINTS=node-1=minio-1:9000,node-2=minio-2:9000
+      - JWT_SECRET_KEY=nbQCpsrwNhr90Moenf5-7YH5blzXuWQkoL1Gg-mNXpC_m2CJ0cYBbzI1Go51pOE5
+      - ELECTION_TIMEOUT_MIN_MS=1000
+      - ELECTION_TIMEOUT_MAX_MS=2000
+      - HEARTBEAT_INTERVAL_MS=150
+      - SNAPSHOT_THRESHOLD=10
+      - PHASE=phase-7
+    ports:
+      - "8003:8003"
+      - "50053:50053"
+    volumes:
+      - raft_data_3:/app/data/raft
+    depends_on:
+      postgres-3:
+        condition: service_healthy
+      minio-3:
+        condition: service_healthy
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  postgres-1:
+    image: postgres:16-alpine
+    container_name: raft-postgres-1
+    environment:
+      - POSTGRES_USER=dropbox_user
+      - POSTGRES_PASSWORD=dropbox_password
+      - POSTGRES_DB=dropbox_db_1
+    volumes:
+      - postgres_data_1:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dropbox_user -d dropbox_db_1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  postgres-2:
+    image: postgres:16-alpine
+    container_name: raft-postgres-2
+    environment:
+      - POSTGRES_USER=dropbox_user
+      - POSTGRES_PASSWORD=dropbox_password
+      - POSTGRES_DB=dropbox_db_2
+    volumes:
+      - postgres_data_2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dropbox_user -d dropbox_db_2"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  postgres-3:
+    image: postgres:16-alpine
+    container_name: raft-postgres-3
+    environment:
+      - POSTGRES_USER=dropbox_user
+      - POSTGRES_PASSWORD=dropbox_password
+      - POSTGRES_DB=dropbox_db_3
+    volumes:
+      - postgres_data_3:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dropbox_user -d dropbox_db_3"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  minio-1:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: raft-minio-1
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data_1:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  minio-2:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: raft-minio-2
+    command: server /data --console-address ":9003"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9002:9000"
+      - "9003:9003"
+    volumes:
+      - minio_data_2:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  minio-3:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: raft-minio-3
+    command: server /data --console-address ":9005"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9004:9000"
+      - "9005:9005"
+    volumes:
+      - minio_data_3:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: raft-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: raft-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - raft-network
+    restart: unless-stopped
+
+networks:
+  raft-network:
+    driver: bridge
+
+volumes:
+  raft_data_1:
+  raft_data_2:
+  raft_data_3:
+  postgres_data_1:
+  postgres_data_2:
+  postgres_data_3:
+  minio_data_1:
+  minio_data_2:
+  minio_data_3:
